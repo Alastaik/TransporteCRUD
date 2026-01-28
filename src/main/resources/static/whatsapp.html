@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conexão WhatsApp - TJGO</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #27ae60;
+            --danger: #e74c3c;
+            --light: #ecf0f1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar {
+            background-color: var(--primary);
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            margin-right: 10px;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+
+        .navbar a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar a.active {
+            background-color: var(--secondary);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: var(--primary);
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 0.9em;
+            color: white;
+            font-weight: bold;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+            margin-right: 10px;
+            font-size: 1em;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .qr-section {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        .qr-section img {
+            max-width: 250px;
+            border: 2px solid #ddd;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .info-box {
+            background: #e8f4f8;
+            border-left: 4px solid var(--secondary);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .info-box ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .error-box {
+            background: #fee;
+            border-left: 4px solid var(--danger);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="navbar">
+        <a href="index.html">📋 Ordens de Serviço</a>
+        <a href="whatsapp.html" class="active">📱 WhatsApp</a>
+    </div>
+
+    <div class="container">
+        <h1>📱 Conexão WhatsApp</h1>
+
+        <div class="status-row">
+            <strong>Status:</strong>
+            <span id="wa-status" class="status-badge" style="background-color: #95a5a6;">VERIFICANDO...</span>
+        </div>
+
+        <div id="error-box" class="error-box">
+            <strong>⚠️ Erro:</strong>
+            <p id="error-message"></p>
+        </div>
+
+        <div id="qr-container" class="qr-section" style="display: none;">
+            <h3>Escaneie o QR Code</h3>
+            <img id="qr-code-img" src="" alt="QR Code WhatsApp">
+            <p style="color: #7f8c8d; margin-top: 15px;">Use o WhatsApp no celular para escanear</p>
+        </div>
+
+        <div style="margin: 30px 0;">
+            <button onclick="iniciarSessao()" id="btn-connect" class="btn btn-primary">🚀 Iniciar Conexão</button>
+            <button onclick="desconectar()" id="btn-disconnect" class="btn btn-danger" style="display: none;">🔌
+                Desconectar</button>
+        </div>
+
+        <div class="info-box">
+            <strong>📖 Como conectar:</strong>
+            <ol>
+                <li>Clique em "Iniciar Conexão"</li>
+                <li>Aguarde o QR Code aparecer (pode levar alguns segundos)</li>
+                <li>Abra o WhatsApp no seu celular</li>
+                <li>Vá em <strong>Menu → Aparelhos conectados → Conectar aparelho</strong></li>
+                <li>Aponte a câmera para o QR Code na tela</li>
+                <li>Aguarde a confirmação de conexão</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const WA_API = '/api/whatsapp';
+        let statusInterval = null;
+
+        async function checkStatus() {
+            try {
+                const res = await fetch(`${WA_API}/status`);
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                const data = await res.json();
+
+                const statusEl = document.getElementById('wa-status');
+                const btnConnect = document.getElementById('btn-connect');
+                const btnDisconnect = document.getElementById('btn-disconnect');
+                const qrContainer = document.getElementById('qr-container');
+                const errorBox = document.getElementById('error-box');
+
+                errorBox.style.display = 'none';
+                statusEl.textContent = data.status.toUpperCase();
+
+                if (data.status === 'ready') {
+                    statusEl.style.backgroundColor = '#27ae60';
+                    btnConnect.style.display = 'none';
+                    btnDisconnect.style.display = 'inline-block';
+                    qrContainer.style.display = 'none';
+                    if (statusInterval) {
+                        clearInterval(statusInterval);
+                        statusInterval = null;
+                    }
+                } else if (data.status === 'connecting') {
+                    statusEl.style.backgroundColor = '#f39c12';
+                    btnConnect.style.display = 'none';
+                    btnDisconnect.style.display = 'inline-block';
+
+                    if (data.hasQrCode) {
+                        atualizarQrCode();
+                    } else {
+                        if (!statusInterval) statusInterval = setInterval(checkStatus, 3000);
+                    }
+                } else {
+                    statusEl.style.backgroundColor = '#95a5a6';
+                    btnConnect.style.display = 'inline-block';
+                    btnDisconnect.style.display = 'none';
+                    qrContainer.style.display = 'none';
+                    if (statusInterval) {
+                        clearInterval(statusInterval);
+                        statusInterval = null;
+                    }
+                }
+
+            } catch (e) {
+                console.error("Erro ao verificar status:", e);
+                showError(`Não foi possível conectar ao serviço WhatsApp. Verifique se o servidor está rodando. (${e.message})`);
+                document.getElementById('wa-status').textContent = 'ERRO';
+                document.getElementById('wa-status').style.backgroundColor = '#e74c3c';
+            }
+        }
+
+        async function atualizarQrCode() {
+            try {
+                const res = await fetch(`${WA_API}/qr`);
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                const data = await res.json();
+
+                if (data.success && data.qrcode) {
+                    document.getElementById('qr-code-img').src = data.qrcode;
+                    document.getElementById('qr-container').style.display = 'block';
+
+                    if (!statusInterval) statusInterval = setInterval(checkStatus, 3000);
+                }
+            } catch (e) {
+                console.error("Erro ao buscar QR Code:", e);
+                showError(`Erro ao buscar QR Code: ${e.message}`);
+            }
+        }
+
+        async function iniciarSessao() {
+            try {
+                document.getElementById('error-box').style.display = 'none';
+                const res = await fetch(`${WA_API}/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`HTTP ${res.status}: ${errorText}`);
+                }
+
+                const data = await res.json();
+                if (data.success) {
+                    setTimeout(checkStatus, 1000);
+                    statusInterval = setInterval(checkStatus, 3000);
+                } else {
+                    showError('Erro ao iniciar sessão: ' + (data.message || 'Erro desconhecido'));
+                }
+            } catch (e) {
+                console.error('Erro completo:', e);
+                showError(`Erro na requisição: ${e.message}. Verifique se o serviço WhatsApp está rodando.`);
+            }
+        }
+
+        async function desconectar() {
+            if (!confirm("Deseja realmente desconectar o WhatsApp?")) return;
+            try {
+                await fetch(`${WA_API}/logout`, { method: 'DELETE' });
+                alert('Desconectado com sucesso!');
+                location.reload();
+            } catch (e) {
+                showError('Erro ao desconectar: ' + e.message);
+            }
+        }
+
+        function showError(message) {
+            const errorBox = document.getElementById('error-box');
+            const errorMessage = document.getElementById('error-message');
+            errorMessage.textContent = message;
+            errorBox.style.display = 'block';
+        }
+
+        // Inicialização
+        checkStatus();
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,58 @@
+services:
+  # 1. Banco de Dados
+  postgres:
+    image: postgres:16
+    container_name: logistica_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: logistica_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: minhasenhasegura
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Backend (Spring Boot)
+  backend:
+    build: .
+    container_name: logistica_backend
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/logistica_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: minhasenhasegura
+      WHATSAPP_API_URL: http://whatsapp-service:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      whatsapp-service:
+        condition: service_started
+
+  # 3. Serviço WhatsApp (Node.js)
+  whatsapp-service:
+    build: ./whatsapp-service
+    container_name: logistica_whatsapp
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - whatsapp_session:/app/whatsapp-session
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  whatsapp_session:

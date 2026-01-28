@@ -1,0 +1,23 @@
+{
+    "name": "whatsapp-service",
+    "version": "1.0.0",
+    "description": "WhatsApp Web.js Microservice for Logistica Bot",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "nodemon server.js"
+    },
+    "dependencies": {
+        "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js#main",
+        "express": "^4.18.2",
+        "qrcode": "^1.5.3",
+        "cors": "^2.8.5",
+        "node-fetch": "^3.3.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.2"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

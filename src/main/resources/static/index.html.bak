@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Logístico TJGO</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #27ae60;
+            --danger: #e74c3c;
+            --light: #ecf0f1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: var(--primary);
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+            margin-right: 5px;
+        }
+
+        .btn-edit {
+            background-color: var(--secondary);
+        }
+
+        .btn-del {
+            background-color: var(--danger);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 5px;
+            width: 500px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            color: white;
+        }
+
+        .aguardar-sim {
+            background-color: var(--accent);
+        }
+
+        .aguardar-nao {
+            background-color: #95a5a6;
+        }
+
+        .navbar {
+            background-color: var(--primary);
+            padding: 15px 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin: -20px -20px 20px -20px;
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            margin-right: 10px;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+
+        .navbar a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .navbar a.active {
+            background-color: var(--secondary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="navbar">
+            <a href="index.html" class="active">📋 Ordens de Serviço</a>
+            <a href="whatsapp.html">📱 WhatsApp</a>
+        </div>
+
+        <h1> Gestão de Transportes - TJGO</h1>
+        <p>Ordens de Serviço Geradas via WhatsApp</p>
+
+        <div
+            style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px; background: #eee; padding: 10px; border-radius: 5px;">
+            <strong> Relatórios:</strong>
+            <input type="date" id="rel-inicio">
+            <span>até</span>
+            <input type="date" id="rel-fim">
+            <button onclick="baixarExcel()" class="btn btn-edit" style="background-color: #27ae60;"> Baixar
+                Excel</button>
+            <button onclick="deletarTudo()" class="btn btn-del" style="margin-left: auto;">⚠️ LIMPAR BANCO DE
+                DADOS</button>
+        </div>
+
+        <button onclick="carregarDados()" class="btn btn-edit" style="margin-bottom: 10px;">🔄 Atualizar Lista</button>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Solicitado em</th>
+                    <th>Solicitante</th>
+                    <th>Destino</th>
+                    <th>Data/Hora Saída</th>
+                    <th>Passageiros</th>
+                    <th>Aguardar?</th>
+                    <th>PROAD</th>
+                    <th>Tipo Veículo</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-corpo">
+                <!-- Dados via JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal Edição -->
+    <div id="modal-editar" class="modal">
+        <div class="modal-content">
+            <h2>Editar Ordem de Serviço</h2>
+            <input type="hidden" id="edit-id">
+
+            <div class="form-group">
+                <label>Solicitante</label>
+                <input type="text" id="edit-nome">
+            </div>
+            <div class="form-group">
+                <label>Destino</label>
+                <input type="text" id="edit-destino">
+            </div>
+            <div class="form-group">
+                <label>Data/Hora Saída (ISO)</label>
+                <input type="datetime-local" id="edit-datahora">
+            </div>
+            <div class="form-group">
+                <label>Passageiros</label>
+                <input type="text" id="edit-passageiros">
+            </div>
+            <div class="form-group">
+                <label>Aguardar Retorno?</label>
+                <select id="edit-aguardar">
+                    <option value="true">Sim</option>
+                    <option value="false">Não</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>PROAD</label>
+                <input type="text" id="edit-proad">
+            </div>
+            <div class="form-group">
+                <label>Tipo de Veículo</label>
+                <select id="edit-tipo-veiculo">
+                    <option value="Carro Convencional">Carro Convencional</option>
+                    <option value="Caminhonete">Caminhonete</option>
+                    <option value="Van">Van</option>
+                </select>
+            </div>
+
+            <div style="text-align: right;">
+                <button onclick="fecharModal()" class="btn btn-del">Cancelar</button>
+                <button onclick="salvarEdicao()" class="btn btn-edit">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api/os';
+
+        async function carregarDados() {
+            try {
+                const res = await fetch(API_URL);
+                const dados = await res.json();
+                const tbody = document.getElementById('tabela-corpo');
+                tbody.innerHTML = '';
+
+                dados.forEach(os => {
+                    const tr = document.createElement('tr');
+                    const dataFmt = os.dataHoraSaida ? new Date(os.dataHoraSaida).toLocaleString('pt-BR') : '-';
+                    const aguardarClass = os.aguardarRetorno ? 'aguardar-sim' : 'aguardar-nao';
+                    const aguardarTexto = os.aguardarRetorno ? 'Sim' : 'Não';
+
+                    const criadoEm = os.criadoEm ? new Date(os.criadoEm).toLocaleString('pt-BR') : '-';
+
+                    tr.innerHTML = `
+                    <td>${os.id}</td>
+                    <td><small>${criadoEm}</small></td>
+                    <td>${os.nomeSolicitante || '-'}</td>
+                    <td>${os.destino}</td>
+                    <td>${dataFmt}</td>
+                    <td>${os.passageiros || '-'}</td>
+                    <td><span class="status-badge ${aguardarClass}">${aguardarTexto}</span></td>
+                    <td>${os.proad || '-'}</td>
+                    <td>${os.tipoVeiculo || 'Carro Convencional'}</td>
+                    <td>
+                        <button class="btn btn-edit" onclick="abrirModal(${os.id})">✏️</button>
+                        <button class="btn btn-del" onclick="deletar(${os.id})">🗑️</button>
+                    </td>
+                `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar:', error);
+                alert('Erro ao carregar dados.');
+            }
+        }
+
+        async function deletar(id) {
+            if (!confirm('Tem certeza que deseja excluir esta OS?')) return;
+
+            try {
+                await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                carregarDados();
+            } catch (error) {
+                alert('Erro ao deletar.');
+            }
+        }
+
+        let osAtual = null;
+
+        async function abrirModal(id) {
+            try {
+                const res = await fetch(`${API_URL}/${id}`);
+                osAtual = await res.json();
+
+                document.getElementById('edit-id').value = osAtual.id;
+                document.getElementById('edit-nome').value = osAtual.nomeSolicitante;
+                document.getElementById('edit-destino').value = osAtual.destino;
+                document.getElementById('edit-passageiros').value = osAtual.passageiros;
+                document.getElementById('edit-proad').value = osAtual.proad;
+                document.getElementById('edit-tipo-veiculo').value = osAtual.tipoVeiculo || 'Carro Convencional';
+                document.getElementById('edit-aguardar').value = osAtual.aguardarRetorno;
+
+                if (osAtual.dataHoraSaida) {
+                    // Formata para input datetime-local (yyyy-MM-ddThh:mm)
+                    const date = new Date(osAtual.dataHoraSaida);
+                    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+                    document.getElementById('edit-datahora').value = date.toISOString().slice(0, 16);
+                }
+
+                document.getElementById('modal-editar').style.display = 'flex';
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function fecharModal() {
+            document.getElementById('modal-editar').style.display = 'none';
+            osAtual = null;
+        }
+
+        async function salvarEdicao() {
+            const id = document.getElementById('edit-id').value;
+            const payload = {
+                nomeSolicitante: document.getElementById('edit-nome').value,
+                destino: document.getElementById('edit-destino').value,
+                dataHoraSaida: document.getElementById('edit-datahora').value,
+                passageiros: document.getElementById('edit-passageiros').value,
+                aguardarRetorno: document.getElementById('edit-aguardar').value === 'true',
+                proad: document.getElementById('edit-proad').value,
+                tipoVeiculo: document.getElementById('edit-tipo-veiculo').value
+            };
+
+            try {
+                const res = await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    fecharModal();
+                    carregarDados();
+                } else {
+                    alert('Erro ao salvar');
+                }
+            } catch (e) {
+                alert('Erro técnico ao salvar');
+            }
+        }
+
+        // Inicializa datas
+        document.getElementById('rel-inicio').valueAsDate = new Date();
+        document.getElementById('rel-fim').valueAsDate = new Date();
+
+        function baixarExcel() {
+            const inicio = document.getElementById('rel-inicio').value;
+            const fim = document.getElementById('rel-fim').value;
+            if (!inicio || !fim) return alert('Selecione as datas!');
+
+            window.location.href = `/api/relatorios/excel?inicio=${inicio}&fim=${fim}`;
+        }
+
+        async function deletarTudo() {
+            if (!confirm('🚨 CERTEZA ABSOLUTA? ISSO APAGARÁ TODAS AS ORDENS DE SERVIÇO!')) return;
+            if (!confirm('SÉRIO MESMO? NÃO TEM VOLTA!')) return;
+
+            try {
+                await fetch('/api/os/wipe-all-secret-key', { method: 'DELETE' });
+                alert('Banco de dados limpo!');
+                carregarDados();
+            } catch (e) {
+                alert('Erro ao limpar.');
+            }
+        }
+
+        // Carrega dados ao iniciar
+        carregarDados();
+    </script>
+
+</body>
+
+</html>
