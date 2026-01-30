@@ -558,7 +558,12 @@
                         <i class="fa-solid fa-circle-notch fa-spin"></i> Processando...
                     </div>
 
-                    <div id="qr-container" style="margin-top: 20px;"></div>
+                    <div id="qr-container" style="margin-top: 20px; text-align: center;">
+                        <img id="wa-qr-image" src=""
+                            style="display:none; width: 250px; height: 250px; border: 1px solid #ccc; padding: 10px; background: white; margin: 0 auto;">
+                        <p id="qr-instruction" style="display:none; font-size: 0.8rem; color: #666; margin-top: 10px;">
+                            Escaneie com o WhatsApp</p>
+                    </div>
                 </div>
 
                 <!-- Bot Settings Card -->
@@ -665,7 +670,7 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
     <script>
         // API ENDPOINTS
         const API = {
@@ -910,14 +915,28 @@
         }
 
         async function fetchQrCode() {
-            const res = await fetch(API.WA + '/qr');
-            if (res.ok) {
-                const data = await res.json();
-                if (data.qrcode) {
-                    const container = document.getElementById('qr-container');
-                    container.innerHTML = ''; // Limpa anterior
-                    new QRCode(container, data.qrcode);
+            try {
+                const res = await fetch(API.WA + '/qr');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.qrcode) {
+                        // CORREÇÃO CRÍTICA:
+                        // O backend manda a imagem pronta (Base64).
+                        // Jogamos direto no src da imagem. Não use "new QRCode()".
+
+                        const img = document.getElementById('wa-qr-image');
+                        const instr = document.getElementById('qr-instruction');
+
+                        // Define o source da imagem
+                        img.src = data.qrcode;
+
+                        // Mostra os elementos
+                        img.style.display = 'block';
+                        instr.style.display = 'block';
+                    }
                 }
+            } catch (e) {
+                console.error("Erro ao buscar QR:", e);
             }
         }
 
