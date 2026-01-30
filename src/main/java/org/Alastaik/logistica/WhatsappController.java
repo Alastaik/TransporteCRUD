@@ -11,7 +11,7 @@ import java.util.Map;
 @RequestMapping("/api/whatsapp")
 public class WhatsappController {
 
-    @Value("${WHATSAPP_API_URL:http://localhost:3000}")
+    @Value("${app.whatsapp.api-url:http://whatsapp-service:3000}")
     private String whatsappApiUrl;
 
     private final RestTemplate restTemplate;
