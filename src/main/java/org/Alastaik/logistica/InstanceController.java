@@ -21,7 +21,6 @@ public class InstanceController {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    // AQUI ESTAVA O ERRO: Mudamos para apontar para o container correto
     @Value("${app.whatsapp.api-url:http://whatsapp-service:3000}")
     private String WHATSAPP_API_URL;
 
